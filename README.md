@@ -118,7 +118,7 @@ python mysql_mcp_server.py
 ============================================================
 Starting MySQL MCP Server (SSE Mode)
 ============================================================
-Database: {'host': '10.1.248.47', 'port': '6677', 'user': 'upc', 'password': 'up***', 'database': 'base'}
+Database: {'host': '*******', 'port': '****', 'user': '***', 'password': '*****', 'database': '****'}
 Server URL: http://0.0.0.0:17110
 SSE Endpoint: http://0.0.0.0:17110/sse
 Messages Endpoint: http://0.0.0.0:17110/messages/
