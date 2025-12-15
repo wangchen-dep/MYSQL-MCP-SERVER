@@ -56,11 +56,11 @@ pip install -r requirements.txt
 创建 `.env` 文件并配置数据库连接：
 
 ```env
-DB_IP=10.1.248.47
-DB_PORT=6677
-DB_NAME=upc
-DB_PASSWD=upcpcm
-DB_DATABASE=base
+DB_IP=*****
+DB_PORT=****
+DB_NAME=***
+DB_PASSWD=****
+DB_DATABASE=***
 ```
 
 或者修改 `config.py` 文件中的默认值：
