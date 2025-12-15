@@ -17,11 +17,11 @@ class DatabaseConfig:
     """Database configuration class with environment variable support."""
     
     # Database connection parameters
-    DB_IP = os.getenv('DB_IP', '10.1.248.40')
-    DB_PORT = os.getenv('DB_PORT', '5566')
-    DB_NAME = os.getenv('DB_NAME', 'billing')
-    DB_PASSWD = os.getenv('DB_PASSWD', 'billing@123')
-    DB_DATABASE = os.getenv('DB_DATABASE', 'base')
+    DB_IP = os.getenv('DB_IP', '******')
+    DB_PORT = os.getenv('DB_PORT', '****')
+    DB_NAME = os.getenv('DB_NAME', '*******')
+    DB_PASSWD = os.getenv('DB_PASSWD', '*******')
+    DB_DATABASE = os.getenv('DB_DATABASE', '*****')
         
     @classmethod
     def get_connection_params(cls):
