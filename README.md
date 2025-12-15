@@ -22,10 +22,11 @@
 - ✅ **查询验证**: 在执行前验证 SQL 语法
 - 🌐 **远程访问**: 通过 HTTP/SSE 提供远程连接
 - 🔒 **安全性**: 参数化查询防止 SQL 注入
+- 🔄 **存储过程**: 创建、执行和管理存储过程
 
 ## 📦 系统要求
 
-- Python 3.11+
+- Python 3.7+
 - MySQL 5.7+ 或 MariaDB 10.3+
 - 网络连接（用于远程访问）
 
@@ -52,26 +53,26 @@ pip install -r requirements.txt
 
 ### 3. 配置数据库
 
-创建 `config.py` 文件并配置数据库连接：
+创建 `.env` 文件并配置数据库连接：
+
+```env
+DB_IP=10.1.248.47
+DB_PORT=6677
+DB_NAME=upc
+DB_PASSWD=upcpcm
+DB_DATABASE=base
+```
+
+或者修改 `config.py` 文件中的默认值：
 
 ```python
 class DatabaseConfig:
-    @staticmethod
-    def get_connection_params():
-        return {
-            'host': 'localhost',
-            'port': 3306,
-            'user': 'your_username',
-            'password': 'your_password',
-            'database': 'your_database',
-            'charset': 'utf8mb4',
-            'cursorclass': 'DictCursor'
-        }
-    
-    @staticmethod
-    def display_config():
-        config = DatabaseConfig.get_connection_params()
-        return f"{config['user']}@{config['host']}:{config['port']}/{config['database']}"
+    # Database connection parameters
+    DB_IP = os.getenv('DB_IP', 'localhost')
+    DB_PORT = os.getenv('DB_PORT', '3306')
+    DB_NAME = os.getenv('DB_NAME', 'your_username')
+    DB_PASSWD = os.getenv('DB_PASSWD', 'your_password')
+    DB_DATABASE = os.getenv('DB_DATABASE', 'your_database')
 ```
 
 ## ⚙️ 配置说明
@@ -83,7 +84,7 @@ class DatabaseConfig:
 ```python
 # 服务器监听地址
 host = "0.0.0.0"  # 监听所有网络接口
-port = 17109      # 服务端口
+port = 17110      # 服务端口 (注意端口可能与原README不同)
 
 # 日志级别
 logging.basicConfig(level=logging.INFO)
@@ -91,20 +92,23 @@ logging.basicConfig(level=logging.INFO)
 
 ### 数据库配置
 
-在 `config.py` 中配置：
+在 `.env` 文件中配置：
 
-- `host`: 数据库主机地址
-- `port`: 数据库端口（默认 3306）
-- `user`: 数据库用户名
-- `password`: 数据库密码
-- `database`: 默认数据库名
-- `charset`: 字符编码（推荐 utf8mb4）
+- `DB_IP`: 数据库主机地址
+- `DB_PORT`: 数据库端口（默认 3306）
+- `DB_NAME`: 数据库用户名
+- `DB_PASSWD`: 数据库密码
+- `DB_DATABASE`: 默认数据库名
 
 ## 🎯 使用指南
 
 ### 启动服务器
 
 ```bash
+# 使用启动脚本 (推荐)
+./start_mcp.sh
+
+# 或者直接运行
 python mysql_mcp_server.py
 ```
 
@@ -114,10 +118,10 @@ python mysql_mcp_server.py
 ============================================================
 Starting MySQL MCP Server (SSE Mode)
 ============================================================
-Database: user@localhost:3306/database
-Server URL: http://0.0.0.0:17109
-SSE Endpoint: http://0.0.0.0:17109/sse
-Messages Endpoint: http://0.0.0.0:17109/messages/
+Database: {'host': '10.1.248.47', 'port': '6677', 'user': 'upc', 'password': 'up***', 'database': 'base'}
+Server URL: http://0.0.0.0:17110
+SSE Endpoint: http://0.0.0.0:17110/sse
+Messages Endpoint: http://0.0.0.0:17110/messages/
 ============================================================
 ```
 
@@ -125,8 +129,8 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 
 客户端可以通过以下端点连接：
 
-- **SSE 连接**: `GET http://localhost:17109/sse`
-- **消息发送**: `POST http://localhost:17109/messages/`
+- **SSE 连接**: `GET http://localhost:17110/sse`
+- **消息发送**: `POST http://localhost:17110/messages/`
 
 ## 🛠️ 可用工具
 
@@ -142,16 +146,17 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 ```json
 {
   "sql": "SELECT * FROM users WHERE age > %s",
-  "params": ["18"]
+  "params": [18]
 }
 ```
 
 **返回**:
 ```json
 {
+  "executeSql": "SELECT * FROM users WHERE age > %s",
   "success": true,
   "rowCount": 10,
-  "data": [...]
+  "execute_result_data": [...]
 }
 ```
 
@@ -174,8 +179,9 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "INSERT INTO users (name, email) VALUES (?, ?)",
   "success": true,
-  "affectedRows": 1,
+  "execute_result_affectedRows": 1,
   "message": "Successfully affected 1 row(s)"
 }
 ```
@@ -187,10 +193,11 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "SELECT TABLE_SCHEMA, TABLE_NAME FROM information_schema.TABLES...",
   "success": true,
   "databaseCount": 3,
   "totalTableCount": 15,
-  "tablesByDatabase": {
+  "execute_result_tablesByDatabase": {
     "db1": ["users", "orders"],
     "db2": ["products"]
   }
@@ -220,9 +227,10 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "DESCRIBE `users`",
   "success": true,
   "table": "users",
-  "columns": [
+  "execute_result_columns": [
     {
       "Field": "id",
       "Type": "int(11)",
@@ -245,8 +253,9 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "SELECT TABLE_NAME, ENGINE, TABLE_ROWS, ...",
   "success": true,
-  "tableInfo": {
+  "execute_result_tableInfo": {
     "TABLE_NAME": "users",
     "ENGINE": "InnoDB",
     "TABLE_ROWS": 1000,
@@ -265,9 +274,10 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "SHOW DATABASES",
   "success": true,
   "databaseCount": 5,
-  "databases": ["db1", "db2", "db3"]
+  "execute_result_databases": ["db1", "db2", "db3"]
 }
 ```
 
@@ -281,9 +291,10 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "SHOW CREATE TABLE `users`",
   "success": true,
   "table": "users",
-  "createStatement": "CREATE TABLE `users` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  ..."
+  "execute_result_createStatement": "CREATE TABLE `users` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  ..."
 }
 ```
 
@@ -297,9 +308,10 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "SHOW INDEX FROM `users`",
   "success": true,
   "table": "users",
-  "indexes": [
+  "execute_result_indexes": [
     {
       "Table": "users",
       "Key_name": "PRIMARY",
@@ -320,10 +332,43 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
 **返回**:
 ```json
 {
+  "executeSql": "SELECT * FROM users",
   "success": true,
   "valid": true,
   "message": "Query is valid",
-  "explainPlan": [...]
+  "execute_result_explainPlan": [...]
+}
+```
+
+### 10. execute_procedure - 执行存储过程
+
+创建、执行并清理存储过程。这是本服务器的一个特色功能。
+
+**参数**:
+- `procedure_sql` (必需): 完整的 CREATE PROCEDURE 语句
+- `call_params` (可选): 调用存储过程时的参数列表
+- `cleanup` (可选): 执行后是否删除存储过程（默认 true）
+
+**示例**:
+```json
+{
+  "procedure_sql": "CREATE PROCEDURE GetUserById(IN userId INT) BEGIN SELECT * FROM users WHERE id = userId; END",
+  "call_params": [123],
+  "cleanup": true
+}
+```
+
+**返回**:
+```json
+{
+  "executeSql": "CREATE PROCEDURE GetUserById(IN userId INT) BEGIN SELECT * FROM users WHERE id = userId; END",
+  "procedureName": "GetUserById",
+  "success": true,
+  "affectedRows": -1,
+  "resultSetCount": 1,
+  "execute_result_data": [[{"id": 123, "name": "John", "email": "john@example.com"}]],
+  "cleaned": true,
+  "message": "Procedure 'GetUserById' executed successfully. Returned 1 result set(s) with 1 total row(s). Procedure has been cleaned up."
 }
 ```
 
@@ -350,7 +395,7 @@ Messages Endpoint: http://0.0.0.0:17109/messages/
    ```json
    {
      "sql": "SELECT * FROM users WHERE id = %s",
-     "params": ["123"]
+     "params": [123]
    }
    ```
 
@@ -427,14 +472,42 @@ python -m flake8 mysql_mcp_server.py
 logging.basicConfig(level=logging.DEBUG)
 ```
 
-## 📄 许可证
+## 🔄 存储过程功能详解
 
-[添加您的许可证信息]
+MySQL MCP Server 提供了独特的存储过程执行功能，无需预先在数据库中创建存储过程即可执行。
 
-## 🤝 贡献
+### 工作原理
 
-欢迎提交 Issue 和 Pull Request！
+1. 接收完整的 CREATE PROCEDURE 语句
+2. 自动创建临时存储过程
+3. 执行存储过程
+4. 获取所有结果集
+5. 根据配置自动清理存储过程
 
-## 📧 联系方式
+### 特色功能
 
-[添加联系方式]
+- **零污染**: 自动清理机制确保不会在数据库中留下临时对象
+- **多结果集**: 完整支持存储过程返回的多个结果集
+- **参数化调用**: 支持带参数的存储过程调用
+- **灵活控制**: 可选择是否清理存储过程
+
+### 使用场景
+
+1. 复杂的数据处理任务
+2. 需要事务控制的操作
+3. 批量数据导入导出
+4. 复杂业务逻辑封装
+
+### 示例
+
+```json
+{
+  "name": "execute_procedure",
+  "arguments": {
+    "procedure_sql": "CREATE PROCEDURE UpdateUserStatus(IN userId INT, IN newStatus VARCHAR(50)) BEGIN UPDATE users SET status = newStatus WHERE id = userId; SELECT ROW_COUNT() as affected_rows; END",
+    "call_params": [123, "active"]
+  }
+}
+```
+
+[添加联系方式] wx: ChenChen_Maerjing
